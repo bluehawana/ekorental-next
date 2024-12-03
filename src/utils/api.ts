@@ -18,13 +18,13 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 }
 
 export const bookingsApi = {
-  create: (bookingData: any) => fetchApi('/bookings', {
+  create: (bookingData: unknown) => fetchApi('/bookings', {
     method: 'POST',
     body: JSON.stringify(bookingData),
   }),
   getAll: () => fetchApi('/bookings'),
   getOne: (id: string) => fetchApi(`/bookings/${id}`),
-  update: (id: string, bookingData: any) => fetchApi(`/bookings/${id}`, {
+  update: (id: string, bookingData: unknown) => fetchApi(`/bookings/${id}`, {
     method: 'PUT',
     body: JSON.stringify(bookingData),
   }),

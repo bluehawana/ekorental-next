@@ -2,10 +2,16 @@
 
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
-import Button from '../ui/button' // Ensure this path is correct
+import Button from '@/components/ui/Button'
+import { useRouter } from 'next/navigation'
 
 export function Navbar() {
   const { data: session } = useSession()
+  const router = useRouter()
+
+  const handleSignIn = () => {
+    router.push('/(auth)/signin')
+  }
 
   return (
     <nav className="bg-white shadow-lg">
@@ -29,13 +35,11 @@ export function Navbar() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {session ? (
               <>
-                <span className="text-gray-900 mr-4">{session.user?.name || 'User'}</span> {/* Fallback to 'User' */}
-                <Button onClick={() => signOut()}>Sign out</Button>
+                <span className="text-gray-900 mr-4">{session.user?.name || 'User'}</span>
+                <Button onClick={() => signOut({ callbackUrl: '/' })}>Sign out</Button>
               </>
             ) : (
-              <Link href="/signin">
-                <Button onClick={() => { /* Handle sign in logic here */ }}>Sign in</Button>
-              </Link>
+              <Button onClick={handleSignIn}>Sign in</Button>
             )}
           </div>
         </div>

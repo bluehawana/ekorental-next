@@ -1,18 +1,33 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
   images: {
-    domains: ["localhost"], // Add localhost to the allowed domains for images
+    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8085',
+        pathname: '/uploads/**',
+      },
+    ],
+    unoptimized: true,
   },
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
-        destination: "http://localhost:8085/api/:path*", // Your backend API URL
+        source: '/api/cars/:path*',
+        destination: 'http://localhost:8085/api/cars/:path*',
+        basePath: false,
       },
       {
-        source: "/api/auth/:provider",
-        destination: "http://localhost:8085/api/auth/:provider", // Authentication endpoints
+        source: '/api/bookings/:path*',
+        destination: 'http://localhost:8085/api/bookings/:path*',
+        basePath: false,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: 'http://localhost:8085/uploads/:path*',
+        basePath: false,
       },
     ];
   },

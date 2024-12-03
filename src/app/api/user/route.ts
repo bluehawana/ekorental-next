@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET(request: Request) {
+export async function GET() {
   const cookieStore = cookies();
   const authMethod = cookieStore.get('auth_method')?.value;
   const userEmail = cookieStore.get('user_email')?.value;
@@ -13,23 +13,25 @@ export async function GET(request: Request) {
   switch (authMethod) {
     case 'github':
       user = {
-        name: 'bluehawana',
+        name: userName || 'GitHub User',
         email: userEmail,
-        avatar: 'https://github.com/bluehawana.png',
+        avatar: userAvatar || `https://github.com/${userName}.png`,
       };
       break;
     case 'google':
       user = {
         name: userName || userEmail?.split('@')[0] || 'Google User',
         email: userEmail,
-        avatar: userAvatar || 'https://lh3.googleusercontent.com/a/default-user=s120-c',
+        avatar: userAvatar || `https://lh3.googleusercontent.com/a/default-user=s120-c`,
       };
       break;
     case 'email':
       user = {
-        name: userEmail?.split('@')[0] || 'Email User',
+        name: userName || userEmail?.split('@')[0] || 'Email User',
         email: userEmail,
-        avatar: `https://ui-avatars.com/api/?name=${userEmail?.split('@')[0]}&background=random`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          userEmail?.split('@')[0] || 'User'
+        )}&background=random`,
       };
       break;
     default:
@@ -42,3 +44,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json(user);
 }
+

@@ -1,25 +1,53 @@
 import { NextResponse } from 'next/server';
+import mysql from 'mysql2/promise';
 
-// Sample car data
-let cars = [
-  { id: 1, make: "Tesla", model: "Model S", year: 2022, pricePerHour: 20.0, licensePlate: "TES-123", color: "Red", imageUrl: "http://localhost:8085/uploads/model_s.png" },
-  { id: 2, make: "Tesla", model: "Model 3", year: 2022, pricePerHour: 18.0, licensePlate: "TES-124", color: "Blue", imageUrl: "http://localhost:8085/uploads/model_3.png" },
-  { id: 3, make: "Tesla", model: "Model X", year: 2022, pricePerHour: 22.0, licensePlate: "TES-125", color: "Black", imageUrl: "http://localhost:8085/uploads/model_x.png" },
-  { id: 4, make: "Tesla", model: "Model Y", year: 2022, pricePerHour: 19.0, licensePlate: "TES-126", color: "White", imageUrl: "http://localhost:8085/uploads/model_y.png" },
-  { id: 5, make: "Tesla", model: "Cybertruck", year: 2022, pricePerHour: 25.0, licensePlate: "TES-127", color: "Silver", imageUrl: "http://localhost:8085/uploads/cybertruck.png" },
-  { id: 6, make: "Tesla", model: "Roadster", year: 2022, pricePerHour: 30.0, licensePlate: "TES-128", color: "Red", imageUrl: "http://localhost:8085/uploads/roadster.png" },
-];
+// Create a connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'tesla_rental',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 // Get all cars
 export async function GET() {
-  return NextResponse.json(cars);
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = await connection.execute('SELECT * FROM cars');
+    connection.release();
+    
+    return NextResponse.json(rows);
+  } catch (error) {
+    console.error('Database error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch cars' },
+      { status: 500 }
+    );
+  }
 }
 
 // Create a new car
 export async function POST(request: Request) {
-  const newCar = await request.json();
-  newCar.id = cars.length ? Math.max(...cars.map(car => car.id)) + 1 : 1; // Assign a new ID
-  cars.push(newCar);
-  return NextResponse.json(newCar, { status: 201 });
+  try {
+    const newCar = await request.json();
+    const connection = await pool.getConnection();
+    
+    const [result] = await connection.execute(
+      'INSERT INTO cars (price, description, imageUrl, available, licensePlate, location, name, year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [newCar.price, newCar.description, newCar.imageUrl, newCar.available, newCar.licensePlate, newCar.location, newCar.name, newCar.year]
+    );
+    
+    connection.release();
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    console.error('Database error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create car' },
+      { status: 500 }
+    );
+  }
 }
 
