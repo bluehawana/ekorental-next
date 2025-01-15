@@ -1,10 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -14,215 +10,129 @@ interface Car {
   model: string;
   licensePlate: string;
   hourRate: number;
-  imageUrl: string;
-  isAvailable: boolean;
   location: string;
-  year: number;
-  description: string;
+  isAvailable: boolean;
 }
 
 interface BookingFormProps {
-  carId: string;
+  car: Car;
 }
 
-const BookingForm = ({ carId }: BookingFormProps) => {
-  const router = useRouter();
+export function BookingForm({ car }: BookingFormProps) {
   const { data: session } = useSession();
-  
-  const [car, setCar] = useState<Car | null>(null);
+  const router = useRouter();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalHours, setTotalHours] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const fetchCarDetails = async () => {
-      try {
-        const response = await fetch(`http://localhost:8085/api/cars/${carId}`);
-        if (!response.ok) throw new Error('Failed to fetch car details');
-        const data = await response.json();
-        setCar(data);
-      } catch (error) {
-        console.error('Error fetching car:', error);
-        toast.error('Failed to load car details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCarDetails();
-  }, [carId]);
-
-  const calculateDuration = (start: string, end: string) => {
-    const startTime = new Date(start).getTime();
-    const endTime = new Date(end).getTime();
-    return Math.max(0, (endTime - startTime) / (1000 * 60 * 60));
+  const calculatePrice = () => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffInHours = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60));
+      setTotalHours(Math.round(diffInHours));
+      setTotalPrice(Math.round(diffInHours * car.hourRate));
+    }
   };
 
-  const handleDateChange = (newStartDate: string, newEndDate: string) => {
-    setStartDate(newStartDate);
-    setEndDate(newEndDate);
-
-    if (newStartDate && newEndDate && car) {
-      const hours = calculateDuration(newStartDate, newEndDate);
-      setTotalHours(hours);
-      setTotalPrice(hours * car.hourRate);
-    }
+  const handleDateChange = () => {
+    calculatePrice();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!car || !session?.user) {
+
+    if (!session) {
       toast.error('Please sign in to book a car');
+      router.push('/signin');
+      return;
+    }
+
+    if (!car.isAvailable) {
+      toast.error('This car is not available for booking');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      
-      const bookingData = {
-        car: { id: car.id },
-        user: { email: session.user.email },
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        totalPrice: totalPrice,
-        status: "PENDING"
-      };
-
-      const response = await fetch('http://localhost:8085/api/bookings', {
+      const response = await fetch(`/api/cars/${car.id}/booking`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookingData)
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          totalPrice,
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Booking failed');
+        const error = await response.text();
+        throw new Error(error || 'Failed to create booking');
       }
 
-      const result = await response.json();
-      toast.success('Booking successful!');
-      router.push(`/bookings/confirmation?id=${result.id}`);
+      const booking = await response.json();
+      toast.success('Booking created successfully!');
+      router.push(`/bookings/${booking.id}`);
     } catch (error) {
-      console.error('Booking error:', error);
+      console.error('Error creating booking:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create booking');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="p-6">
-          <div className="text-center">Loading...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!car) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="p-6">
-          <div className="text-center">Car not found</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Book {car.model}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative h-48 mb-4">
-            <Image
-              src={car.imageUrl}
-              alt={car.model}
-              fill
-              className="object-cover rounded-lg"
-              unoptimized
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-semibold">Price per hour</p>
-              <p>{car.hourRate} kr/hour</p>
-            </div>
-            <div>
-              <p className="font-semibold">Location</p>
-              <p>{car.location}</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="startDate" className="text-sm font-medium">
-              Pick-up Date and Time
-            </label>
-            <Input
-              id="startDate"
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-bold mb-6">Book Your Rental</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Pickup Time</label>
+            <input
               type="datetime-local"
               value={startDate}
-              onChange={(e) => handleDateChange(e.target.value, endDate)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                handleDateChange();
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
               min={new Date().toISOString().slice(0, 16)}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="endDate" className="text-sm font-medium">
-              Return Date and Time
-            </label>
-            <Input
-              id="endDate"
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Return Time</label>
+            <input
               type="datetime-local"
               value={endDate}
-              onChange={(e) => handleDateChange(startDate, e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                handleDateChange();
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
               min={startDate}
             />
           </div>
+        </div>
 
-          {totalHours > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Duration:</span>
-                <span>{totalHours} hours</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Total Cost:</span>
-                <span className="text-lg font-bold">{totalPrice} kr</span>
-              </div>
-            </div>
-          )}
+        {totalHours > 0 && (
+          <div className="bg-gray-50 p-4 rounded-md space-y-2">
+            <p className="text-sm text-gray-600">Duration: {totalHours} hours</p>
+            <p className="text-sm text-gray-600">Rate: {car.hourRate} SEK/hour</p>
+            <p className="text-lg font-bold text-gray-900">Total: {totalPrice} SEK</p>
+          </div>
+        )}
 
-          <Button 
-            type="submit"
-            disabled={isSubmitting || !session || !car.isAvailable}
-            className="w-full"
-          >
-            {isSubmitting 
-              ? 'Processing...' 
-              : !session 
-                ? 'Sign in to Book' 
-                : !car.isAvailable
-                  ? 'Car Not Available'
-                  : 'Confirm Booking'
-            }
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <button
+          type="submit"
+          disabled={!car.isAvailable || totalHours === 0}
+          className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {!session ? 'Sign in to Book' : car.isAvailable ? 'Confirm Booking' : 'Not Available'}
+        </button>
+      </form>
+    </div>
   );
-};
-
-export default BookingForm;
+}

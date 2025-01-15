@@ -13,12 +13,18 @@ export function Card({ className, children, ...props }: CardProps) {
     )
 }
 
-export const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    return <h2 className="card-title">{children}</h2>;
+export const CardTitle: React.FC<{ 
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className }) => {
+  return <h2 className={cn("text-5xl font-bold tracking-tight", className)}>{children}</h2>;
 };
 
-export const CardHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    return <div className="card-header">{children}</div>;
+export const CardHeader: React.FC<{ 
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className }) => {
+  return <div className={cn("card-header", className)}>{children}</div>;
 };
 
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {

@@ -1,36 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   images: {
-    domains: ['localhost'],
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8085',
-        pathname: '/uploads/**',
-      },
+    domains: [
+      'lh3.googleusercontent.com', 
+      'avatars.githubusercontent.com', 
+      'localhost',
+      'picsum.photos'
     ],
-    unoptimized: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/cars/:path*',
-        destination: 'http://localhost:8085/api/cars/:path*',
-        basePath: false,
-      },
-      {
-        source: '/api/bookings/:path*',
-        destination: 'http://localhost:8085/api/bookings/:path*',
-        basePath: false,
-      },
-      {
-        source: '/uploads/:path*',
-        destination: 'http://localhost:8085/uploads/:path*',
-        basePath: false,
-      },
-    ];
-  },
+  experimental: {
+    appDir: true
+  }
 };
 
 module.exports = nextConfig;
