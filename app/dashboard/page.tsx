@@ -10,7 +10,7 @@ interface Car {
   make: string;
   model: string;
   year: number;
-  hour_rate: number;
+  hourRate: number;
   licensePlate: string;
   location: string;
   imageUrl: string;
@@ -28,6 +28,7 @@ export default function DashboardPage() {
         const response = await fetch('http://localhost:8080/api/cars');
         if (!response.ok) throw new Error('Failed to fetch cars');
         const data = await response.json();
+        console.log('Fetched cars:', data);
         setCars(data);
       } catch (error) {
         console.error('Error fetching cars:', error);
@@ -53,12 +54,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cars.map((car) => (
             <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="relative h-48">
+              <div className="relative w-full" style={{ paddingTop: '70%' }}>
                 <Image
                   src={getImageUrl(car.imageUrl)}
                   alt={`${car.make} ${car.model}`}
                   fill
-                  className="object-cover"
+                  className="object-contain p-4"
                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/placeholder-car.png';
@@ -68,19 +69,21 @@ export default function DashboardPage() {
                 />
               </div>
               <div className="p-4">
-                <h2 className="text-xl font-bold">{car.make} {car.model}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{car.make} {car.model}</h2>
                 <p className="text-gray-600">{car.year}</p>
                 <p className="text-gray-500">{car.location}</p>
                 <p className="mt-2 text-gray-700">{car.description}</p>
                 <p className="mt-2 text-gray-600">License: {car.licensePlate}</p>
-              
-                <div className="mt-4">
-                  <p className="text-lg font-semibold text-green-600">
-                    {car.hourRate} kr/h
+                
+                <div className="mt-4 flex justify-between items-center">
+                  <p className="text-xl font-bold text-gray-900">
+                    {typeof car.hourRate === 'number' && car.hourRate > 0 
+                      ? `${car.hourRate} SEK/h` 
+                      : 'Contact for price'}
                   </p>
                   <Link 
                     href={`/cars/${car.id}/book`}
-                    className="mt-3 block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                    className="inline-block bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors"
                   >
                     Rent Now
                   </Link>

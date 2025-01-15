@@ -12,35 +12,28 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
           prompt: "select_account",
           access_type: "offline",
-          response_type: "code",
+          response_type: "code"
         }
       }
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_ID ?? '',
-      clientSecret: process.env.GITHUB_SECRET ?? '',
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
     }),
     EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD
-        }
-      },
-      from: process.env.EMAIL_FROM
+      server: process.env.EMAIL_SERVER,
+      from: process.env.EMAIL_FROM,
     }),
   ],
   pages: {
     signIn: '/signin',
-    error: '/signin',
+    error: '/auth/error',
   },
   session: {
     strategy: "jwt",
@@ -59,10 +52,13 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) return url
-      else if (url.startsWith("/")) return `${baseUrl}${url}`
+      if (url.startsWith('/signin')) {
+        return `${baseUrl}/dashboard`
+      }
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      else if (new URL(url).origin === baseUrl) return url
       return baseUrl
-    },
+    }
   },
   debug: process.env.NODE_ENV === 'development',
 } 

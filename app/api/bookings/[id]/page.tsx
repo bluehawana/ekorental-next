@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import BookingForm from '@/components/bookings/BookingForm';
+import { BookingForm } from '@/components/bookings/BookingForm';
 import { fetchApi } from '@/utils/api';
 
 interface Car {
@@ -44,7 +44,7 @@ export default function CarDetailPage() {
       <p>Car ID: {car.id}</p>
       {/* Display other car details as needed */}
       <h2>Book this car</h2>
-      <BookingForm carId={id} />
+      <BookingForm car={car} />
     </div>
   );
 }

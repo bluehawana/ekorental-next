@@ -6,8 +6,57 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Github } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import Image from 'next/image'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 
 export default function SignIn() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState('')
+  const router = useRouter()
+
+  const handleSocialLogin = async (provider: 'google' | 'github') => {
+    try {
+      setIsLoading(true)
+      const result = await signIn(provider, {
+        callbackUrl: '/dashboard',
+        redirect: false,
+      })
+      
+      if (result?.error) {
+        toast.error(result.error)
+      } else if (result?.url) {
+        router.push(result.url)
+      }
+    } catch (error) {
+      toast.error(`Failed to sign in with ${provider}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEmailLogin = async () => {
+    if (!email) return
+    try {
+      setIsLoading(true)
+      const result = await signIn('email', {
+        email,
+        callbackUrl: '/dashboard',
+        redirect: false,
+      })
+      
+      if (result?.error) {
+        toast.error(result.error)
+      } else {
+        toast.success('Check your email for the login link!')
+      }
+    } catch (error) {
+      toast.error('Failed to send login email')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A1B] flex items-center justify-center p-4">
       <Card className="w-[380px] bg-[#1C1C3A] border-0 text-white shadow-2xl">
@@ -15,7 +64,7 @@ export default function SignIn() {
           <div className="text-center space-y-6">
             <CardTitle>Quick Sign In, Drive Green</CardTitle>
             <p className="text-lg text-gray-400">
-              No registration needed - just click and drive grenn as fast as you can
+              No registration needed - just click and drive green as fast as you can
             </p>
           </div>
         </CardHeader>
@@ -23,7 +72,8 @@ export default function SignIn() {
         <CardContent className="flex flex-col px-6 pb-8">
           <div className="space-y-6 mb-8">
             <Button 
-              onClick={() => signIn('github')}
+              onClick={() => handleSocialLogin('github')}
+              disabled={isLoading}
               variant="secondary" 
               className="w-full bg-[#1C1C3A] hover:bg-[#2A2A4A] text-white border border-gray-700 h-12 text-base"
             >
@@ -32,7 +82,8 @@ export default function SignIn() {
             </Button>
             
             <Button 
-              onClick={() => signIn('google')}
+              onClick={() => handleSocialLogin('google')}
+              disabled={isLoading}
               variant="secondary" 
               className="w-full bg-white hover:bg-gray-100 text-gray-900 h-12 text-base"
             >
@@ -60,10 +111,15 @@ export default function SignIn() {
             <Input 
               type="email" 
               placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
               className="h-12 !bg-black text-white placeholder:text-gray-500 border-gray-700 text-base"
             />
             
             <Button 
+              onClick={handleEmailLogin}
+              disabled={isLoading || !email}
               variant="secondary" 
               className="w-full bg-white hover:bg-gray-100 text-gray-900 h-12 text-base"
             >
