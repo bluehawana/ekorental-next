@@ -55,14 +55,16 @@ export function BookingForm({ car }: BookingFormProps) {
     }
 
     try {
-      const response = await fetch(`/api/cars/${car.id}/booking`, {
+      const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          startDate,
-          endDate,
+          userId: session.user.id,
+          carId: car.id,
+          startTime: startDate,
+          endTime: endDate,
           totalPrice,
         }),
       });

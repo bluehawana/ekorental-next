@@ -31,6 +31,7 @@ export default function BookingPage() {
   const params = useParams();
   const router = useRouter();
   const [car, setCar] = useState<Car | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [booking, setBooking] = useState<BookingDetails>({
     pickupTime: '',
     returnTime: '',
@@ -101,30 +102,47 @@ export default function BookingPage() {
   };
 
   const handleBooking = async () => {
-    if (!car || !booking.pickupTime || !booking.returnTime) return;
+    if (!car || !booking.pickupTime || !booking.returnTime || isSubmitting) return;
 
     try {
+      setIsSubmitting(true);
+
+      const bookingRequest = {
+        carId: car.id,
+        userId: 5,
+        startTime: new Date(booking.pickupTime).toISOString(),
+        endTime: new Date(booking.returnTime).toISOString(),
+        status: "CONFIRMED",
+        totalPrice: booking.totalPrice.toFixed(2)
+      };
+
       const response = await fetch('http://localhost:8080/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          carId: car.id,
-          pickupTime: booking.pickupTime,
-          returnTime: booking.returnTime,
-          totalHours: booking.totalHours,
-          totalPrice: booking.totalPrice
-        }),
+        body: JSON.stringify(bookingRequest),
       });
 
-      if (!response.ok) throw new Error('Booking failed');
+      if (!response.ok) {
+        throw new Error('Booking failed');
+      }
       
-      const { sessionUrl } = await response.json();
-      router.push(sessionUrl); // Redirect to Stripe checkout
+      const data = await response.json();
+      console.log('Booking response:', data);
+      
+      if (data.id) {
+        toast.success('Booking confirmed!');
+        router.push(`/bookings/success?id=${data.id}`);
+      } else {
+        toast.error('Booking created but no ID returned');
+        router.push('/bookings/success');
+      }
     } catch (error) {
       console.error('Booking error:', error);
       toast.error('Failed to create booking');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -204,10 +222,10 @@ export default function BookingPage() {
 
             <Button 
               className="w-full bg-blue-600 text-white hover:bg-blue-700 py-3 text-lg"
-              disabled={booking.totalHours <= 0}
+              disabled={booking.totalHours <= 0 || isSubmitting}
               onClick={handleBooking}
             >
-              Proceed to Payment
+              {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
             </Button>
           </div>
         </CardContent>

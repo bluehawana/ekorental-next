@@ -29,36 +29,36 @@ export function BookingForm({ car }: BookingFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     
-    try {
-      if (!session?.user?.id) {
-        throw new Error('Please login to make a booking');
-      }
+    if (!session?.user?.id) {
+      alert('Please login first');
+      return;
+    }
 
+    try {
       const bookingData = {
         carId: car.id,
-        userId: session.user.id,
-        startTime: startTime,  // Changed from pickupTime
-        endTime: endTime,      // Changed from returnTime
-        totalPrice: totalPrice,
-        status: 'PENDING'
+        pickupTime: startTime,
+        returnTime: endTime,
+        totalHours: calculateHours(startTime, endTime),
+        totalPrice: totalPrice
       };
 
-      console.log('Sending booking data:', bookingData); // Debug log
-
-      const response = await fetchApi('/api/bookings', {
+      const response = await fetchApi('/bookings', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify(bookingData)
       });
 
-      console.log('Booking confirmed:', response);
+      if (!response.ok) {
+        throw new Error('Booking failed');
+      }
+      
+      // Handle successful booking
     } catch (error) {
-      console.error('Error creating booking:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      console.error('Booking error:', error);
     }
   };
 
