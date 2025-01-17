@@ -7,28 +7,41 @@ import { Github } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import Image from 'next/image'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const error = searchParams?.get('error')
+
+  // Show error toast if there's an error in URL
+  if (error) {
+    toast.error(
+      error === 'AccessDenied' 
+        ? 'Access denied. Please try again.' 
+        : `Authentication error: ${error}`
+    )
+  }
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
     try {
       setIsLoading(true)
       const result = await signIn(provider, {
         callbackUrl: '/dashboard',
-        redirect: false,
+        redirect: true, // Changed to true for direct redirect
       })
       
+      // This will only run if redirect is false
       if (result?.error) {
         toast.error(result.error)
       } else if (result?.url) {
         router.push(result.url)
       }
     } catch (error) {
+      console.error('Sign in error:', error)
       toast.error(`Failed to sign in with ${provider}`)
     } finally {
       setIsLoading(false)
@@ -123,7 +136,7 @@ export default function SignIn() {
               variant="secondary" 
               className="w-full bg-white hover:bg-gray-100 text-gray-900 h-12 text-base"
             >
-              Continue with email
+              Continue with Email
             </Button>
           </div>
         </CardContent>
@@ -131,4 +144,3 @@ export default function SignIn() {
     </div>
   )
 }
-

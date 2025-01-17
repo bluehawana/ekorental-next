@@ -1,12 +1,14 @@
-'use client';
+'use client'
 
-import { SessionProvider } from 'next-auth/react';
-import { ReactNode } from 'react';
+import React from 'react'
+import { SessionProvider } from 'next-auth/react'
+import { Toaster } from 'react-hot-toast'
 
-interface Props {
-  children: ReactNode;
-}
-
-export default function AuthProvider({ children }: Props) {
-  return <SessionProvider>{children}</SessionProvider>;
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      {children}
+      <Toaster position="top-center" />
+    </SessionProvider>
+  )
 }
