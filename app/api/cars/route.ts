@@ -1,10 +1,28 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { API_CONFIG } from '@/lib/api-config';
 
-interface CarData {
+interface BackendCar {
   id: number;
   model: string;
-  // ... add other car properties
+  price: string;
+  costPerHour?: string;
+  imageUrl: string;
+  description?: string;
+  plateNumber?: string;
+  location?: string;
+  year?: string;
+}
+
+interface FrontendCar {
+  id: string;
+  model: string;
+  price: number;
+  costPerHour: number;
+  imageUrl: string;
+  description: string;
+  plateNumber: string;
+  location: string;
+  year: string;
 }
 
 async function fetchCarsFromBackend() {
@@ -19,13 +37,13 @@ async function fetchCarsFromBackend() {
     const data = await response.json();
     
     // Transform backend data to match our frontend structure
-    return data.map((car: any) => ({
+    return data.map((car: BackendCar): FrontendCar => ({
       id: car.id.toString(),
       model: car.model,
       price: parseFloat(car.price),
-      costPerHour: parseFloat(car.costPerHour || car.price), // fallback to price if costPerHour not available
+      costPerHour: parseFloat(car.costPerHour || car.price),
       imageUrl: car.imageUrl.startsWith('http') ? car.imageUrl : `${API_CONFIG.UPLOADS_URL}/${car.imageUrl}`,
-      description: car.description,
+      description: car.description || '',
       plateNumber: car.plateNumber || 'N/A',
       location: car.location || 'Gothenburg',
       year: car.year || '2024',
@@ -45,7 +63,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const data: CarData = await request.json();
+  const data: BackendCar = await request.json();
   // ... rest of the code
 }
 
