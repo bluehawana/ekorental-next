@@ -4,19 +4,12 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth-config";
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 export async function GET(
   request: NextRequest,
-  context: RouteContext
+  { params }: { params: { id: string } }
 ) {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${context.params.id}`);
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${params.id}`);
     if (!response.ok) throw new Error('Failed to fetch car');
     const car = await response.json();
     return NextResponse.json(car);
@@ -27,7 +20,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  context: RouteContext
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,7 +33,7 @@ export async function POST(
 
     const car = await prisma.car.findUnique({
       where: {
-        id: parseInt(context.params.id)
+        id: parseInt(params.id)
       }
     });
 
@@ -61,7 +54,7 @@ export async function POST(
         },
         car: {
           connect: {
-            id: parseInt(context.params.id)
+            id: parseInt(params.id)
           }
         },
         startDate: new Date(startDate),
@@ -82,7 +75,7 @@ export async function POST(
 
 export async function HEAD(
   request: NextRequest,
-  context: RouteContext
+  { params }: { params: { id: string } }
 ) {
   try {
     const url = new URL(request.url);
@@ -94,7 +87,7 @@ export async function HEAD(
     }
 
     const response = await fetch(
-      `${API_CONFIG.API_BASE_URL}/cars/${context.params.id}/availability?startTime=${startTime}&endTime=${endTime}`
+      `${API_CONFIG.API_BASE_URL}/cars/${params.id}/availability?startTime=${startTime}&endTime=${endTime}`
     );
 
     if (!response.ok) {
