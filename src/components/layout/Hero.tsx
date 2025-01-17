@@ -27,7 +27,7 @@ export function Hero() {
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
-            Sweden's first eco-conscious Tesla rental service. Experience luxury while protecting our environment.
+            Sweden&apos;s first eco-conscious Tesla rental service. Experience luxury while protecting our environment.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">

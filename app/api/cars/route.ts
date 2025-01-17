@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG } from '@/lib/api-config';
 
+interface CarData {
+  id: number;
+  model: string;
+  // ... add other car properties
+}
+
 async function fetchCarsFromBackend() {
   try {
     const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars`, {
@@ -36,5 +42,10 @@ export async function GET() {
     return new NextResponse('Failed to fetch cars', { status: 500 });
   }
   return NextResponse.json(cars);
+}
+
+export async function POST(request: NextRequest) {
+  const data: CarData = await request.json();
+  // ... rest of the code
 }
 

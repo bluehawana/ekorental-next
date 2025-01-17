@@ -6,7 +6,14 @@ export async function fetchCarById(id: string) {
   return response.json();
 }
 
-export async function createBooking(bookingData: any) {
+interface BookingData {
+  startDate: string;
+  endDate: string;
+  carId: number;
+  // ... other booking properties
+}
+
+export async function createBooking(bookingData: BookingData) {
   const response = await fetch(`${API_CONFIG.API_BASE_URL}/bookings`, {
     method: 'POST',
     headers: {
