@@ -42,7 +42,7 @@ export default function BookingPage() {
   useEffect(() => {
     const fetchCar = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/cars/${params.id}`);
+        const response = await fetch(`/api/cars/${params.id}`);
         if (!response.ok) throw new Error('Failed to fetch car');
         const data = await response.json();
         setCar(data);

@@ -1,52 +1,55 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { API_CONFIG } from '@/lib/api-config';
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-config";
+
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteParams
 ) {
   try {
-    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${params.id}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch car');
-    }
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${context.params.id}`);
+    if (!response.ok) throw new Error('Failed to fetch car');
     const car = await response.json();
     return NextResponse.json(car);
   } catch (error) {
-    console.error('Error:', error);
-    return new NextResponse('Failed to fetch car', { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch car' }, { status: 500 });
   }
 }
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteParams
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { startDate, endDate, totalPrice } = body;
 
     // Validate the car exists
     const car = await prisma.car.findUnique({
       where: {
-        id: parseInt(params.id)
+        id: parseInt(context.params.id)
       }
     });
 
     if (!car) {
-      return new Response("Car not found", { status: 404 });
+      return NextResponse.json({ error: "Car not found" }, { status: 404 });
     }
 
     if (!car.available) {
-      return new Response("Car is not available", { status: 400 });
+      return NextResponse.json({ error: "Car is not available" }, { status: 400 });
     }
 
     const booking = await prisma.booking.create({
@@ -58,7 +61,7 @@ export async function POST(
         },
         car: {
           connect: {
-            id: parseInt(params.id)
+            id: parseInt(context.params.id)
           }
         },
         startDate: new Date(startDate),
@@ -71,17 +74,16 @@ export async function POST(
       }
     });
 
-    return Response.json(booking);
+    return NextResponse.json(booking);
   } catch (error) {
-    console.error("[BOOKING_ERROR]", error);
-    return new Response("Internal Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
 
 // Optional: Add a method to check car availability for specific dates
 export async function HEAD(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteParams
 ) {
   try {
     const url = new URL(request.url);
@@ -93,7 +95,7 @@ export async function HEAD(
     }
 
     const response = await fetch(
-      `${API_CONFIG.API_BASE_URL}/cars/${params.id}/availability?startTime=${startTime}&endTime=${endTime}`
+      `${API_CONFIG.API_BASE_URL}/cars/${context.params.id}/availability?startTime=${startTime}&endTime=${endTime}`
     );
 
     if (!response.ok) {
