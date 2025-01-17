@@ -35,33 +35,32 @@ export const authOptions: NextAuthOptions = {
           }),
         });
 
-        // Check for network errors
-        if (!response) {
-          console.error('Network error');
-          return '/auth/error?error=network';
+        if (!response.ok) {
+          return false;
         }
 
-        // Handle non-200 responses
-        if (!response.ok) {
-          console.error('Backend error:', response.status);
-          return `/auth/error?error=${response.status}`;
-        }
+        const userData = await response.json();
+        user.id = userData.id;
 
         return true;
       } catch (error) {
         console.error('SignIn error:', error);
-        return '/auth/error?error=' + encodeURIComponent(error.message);
+        return false;
       }
     },
-    async jwt({ token, account }) {
-      if (account) {
-        token.accessToken = account.access_token;
+    async redirect({ url, baseUrl }) {
+      // Always redirect to dashboard after successful sign in
+      return `${baseUrl}/dashboard`;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.sub;
+        session.user.id = token.sub as string;
       }
       return session;
     },

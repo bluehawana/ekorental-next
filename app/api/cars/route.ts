@@ -55,11 +55,21 @@ async function fetchCarsFromBackend() {
 }
 
 export async function GET() {
-  const cars = await fetchCarsFromBackend();
-  if (!cars) {
-    return new NextResponse('Failed to fetch cars', { status: 500 });
+  try {
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch cars');
+    const cars = await response.json();
+    
+    return NextResponse.json(cars);
+  } catch (error) {
+    console.error('Error fetching cars:', error);
+    return NextResponse.json({ error: 'Failed to fetch cars' }, { status: 500 });
   }
-  return NextResponse.json(cars);
 }
 
 export async function POST(request: NextRequest) {

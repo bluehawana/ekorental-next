@@ -1,48 +1,47 @@
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from 'next/server';
+import { API_CONFIG } from '@/lib/api-config';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia'
-});
-
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = await request.json();
-    const { carId, pickupTime, returnTime, totalHours, totalPrice } = body;
-
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'sek',
-            product_data: {
-              name: 'Car Rental',
-              description: `Rental period: ${totalHours} hours`,
-            },
-            unit_amount: totalPrice * 100, // Convert to öre
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/bookings/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/bookings/cancel`,
-      metadata: {
-        carId,
-        pickupTime,
-        returnTime,
-        totalHours: totalHours.toString(),
-        totalPrice: totalPrice.toString(),
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/bookings`, {
+      headers: {
+        'Content-Type': 'application/json',
       },
     });
-
-    return NextResponse.json({ sessionUrl: session.url });
+    
+    if (!response.ok) throw new Error('Failed to fetch bookings');
+    const bookings = await response.json();
+    
+    return NextResponse.json(bookings);
   } catch (error) {
-    console.error('Stripe session error:', error);
+    console.error('Error fetching bookings:', error);
+    return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create booking');
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error creating booking:', error);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: 'Failed to create booking' },
       { status: 500 }
     );
   }

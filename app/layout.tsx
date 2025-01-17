@@ -8,8 +8,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-[#0A0A1B]">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-[#0A0A1B]" suppressHydrationWarning>
         <AuthProvider>
           <Navigation />
           <main>{children}</main>

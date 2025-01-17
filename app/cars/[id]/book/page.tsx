@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { toast } from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 
 interface Car {
   id: number;
@@ -14,10 +14,9 @@ interface Car {
   model: string;
   year: number;
   hourRate: number;
-  licensePlate: string;
-  location: string;
   imageUrl: string;
   description: string;
+  location: string;
 }
 
 interface BookingDetails {
@@ -28,9 +27,11 @@ interface BookingDetails {
 }
 
 export default function BookingPage() {
+  const { data: session } = useSession();
   const params = useParams();
   const router = useRouter();
   const [car, setCar] = useState<Car | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [booking, setBooking] = useState<BookingDetails>({
     pickupTime: '',
@@ -42,12 +43,16 @@ export default function BookingPage() {
   useEffect(() => {
     const fetchCar = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch(`/api/cars/${params.id}`);
         if (!response.ok) throw new Error('Failed to fetch car');
         const data = await response.json();
         setCar(data);
       } catch (error) {
-        console.error('Error fetching car:', error);
+        console.error('Error:', error);
+        toast.error('Failed to load car details');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -71,12 +76,18 @@ export default function BookingPage() {
     });
   };
 
-  const getImageUrl = (url: string) => {
-    return url?.endsWith('.jpg') ? url.replace('.jpg', '.png') : url;
-  };
-
   const formatDateTime = (date: Date) => {
-    return date.toISOString().slice(0, 16);
+    try {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return '';
+    }
   };
 
   const handlePickupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,18 +114,29 @@ export default function BookingPage() {
 
   const handleBooking = async () => {
     if (!car || !booking.pickupTime || !booking.returnTime || isSubmitting) return;
+    
+    if (!session?.user?.id) {
+      toast.error('Please sign in to book a car');
+      router.push('/signin');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
 
+      console.log('Session user ID:', session.user.id);
+
       const bookingRequest = {
-        carId: car.id,
-        userId: 5,
+        bookingId: null,
+        carId: Number(car.id),
+        userId: 8,
         startTime: new Date(booking.pickupTime).toISOString(),
         endTime: new Date(booking.returnTime).toISOString(),
-        status: "CONFIRMED",
+        status: "PENDING",
         totalPrice: booking.totalPrice.toFixed(2)
       };
+
+      console.log('Sending booking request:', bookingRequest);
 
       const response = await fetch('http://localhost:8080/api/bookings', {
         method: 'POST',
@@ -124,19 +146,21 @@ export default function BookingPage() {
         body: JSON.stringify(bookingRequest),
       });
 
-      if (!response.ok) {
-        throw new Error('Booking failed');
-      }
-      
       const data = await response.json();
-      console.log('Booking response:', data);
+      console.log('Booking creation response:', data);
       
-      if (data.id) {
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed');
+      }
+
+      const bookingId = data.bookingId || data.id;
+      if (bookingId) {
+        console.log('Redirecting to success with ID:', bookingId);
         toast.success('Booking confirmed!');
-        router.push(`/bookings/success?id=${data.id}`);
+        router.push(`/bookings/success?id=${bookingId}`);
       } else {
-        toast.error('Booking created but no ID returned');
-        router.push('/bookings/success');
+        console.error('No booking ID in response:', data);
+        toast.error('Booking created but could not be retrieved');
       }
     } catch (error) {
       console.error('Booking error:', error);
@@ -146,82 +170,91 @@ export default function BookingPage() {
     }
   };
 
-  if (!car) return <div>Loading...</div>;
+  if (isLoading || !car) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse bg-gray-800 rounded-lg h-96"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-4xl mx-auto bg-white">
+      <Card className="max-w-4xl mx-auto bg-gray-800">
         <div className="relative w-full" style={{ paddingTop: '50%' }}>
           <Image
             src={car.imageUrl}
             alt={`${car.make} ${car.model}`}
             fill
-            className="object-contain p-4"
+            className="object-cover rounded-t-lg"
+            onError={(e: any) => {
+              e.target.src = '/placeholder-car.png';
+            }}
             unoptimized
           />
         </div>
         
         <CardContent className="p-6">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-3">{car.make} {car.model}</h1>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="space-y-1">
-                <p className="text-gray-600">Year: {car.year}</p>
-                <p className="text-gray-600">Location: {car.location}</p>
-                <p className="text-gray-600">License: {car.licensePlate}</p>
-                <p className="text-gray-600">
-                  <span>Price per hour: </span>
-                  <span className="text-gray-900 font-semibold">{car.hourRate} SEK/h</span>
-                </p>
-              </div>
-              <div>
-              </div>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              {car.make} {car.model}
+            </h1>
+            <div className="flex items-center text-gray-400 space-x-4">
+              <span>{car.year}</span>
+              <span>•</span>
+              <span>{car.location}</span>
+              <span>•</span>
+              <span>{car.hourRate} SEK/hour</span>
             </div>
-            <p className="text-gray-700 mt-2">{car.description}</p>
+            <p className="mt-4 text-gray-300">{car.description}</p>
           </div>
 
-          <div className="space-y-6 border-t pt-6">
-            <h2 className="text-xl font-semibold">Book Your Time</h2>
+          <div className="space-y-6 border-t border-gray-700 pt-6">
+            <h2 className="text-xl font-semibold text-white">Book Your Time</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Pick-up Time
                 </label>
                 <input
                   type="datetime-local"
                   value={booking.pickupTime}
                   onChange={handlePickupChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  className="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
                   min={formatDateTime(new Date())}
+                  suppressHydrationWarning
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Return Time
                 </label>
                 <input
                   type="datetime-local"
                   value={booking.returnTime}
                   onChange={handleReturnChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  className="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
                   min={booking.pickupTime || formatDateTime(new Date())}
+                  suppressHydrationWarning
                 />
               </div>
             </div>
 
             {booking.totalHours > 0 && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-600">Total Duration: {booking.totalHours} hours</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
+              <div className="bg-gray-700 p-4 rounded-lg" suppressHydrationWarning>
+                <p className="text-gray-300">Total Duration: {booking.totalHours} hours</p>
+                <p className="text-2xl font-bold text-white mt-2" suppressHydrationWarning>
                   Total Price: {booking.totalPrice} SEK
                 </p>
               </div>
             )}
 
             <Button 
-              className="w-full bg-blue-600 text-white hover:bg-blue-700 py-3 text-lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
               disabled={booking.totalHours <= 0 || isSubmitting}
               onClick={handleBooking}
             >

@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { API_CONFIG } from '@/lib/api-config';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const response = await fetch(`http://localhost:8080/api/cars/${params.id}`);
+    const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${params.id}`);
     if (!response.ok) throw new Error('Failed to fetch car');
     const car = await response.json();
     return NextResponse.json(car);
