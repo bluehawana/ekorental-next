@@ -4,15 +4,16 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth-config";
 
-type RouteParams = {
+interface RouteContext {
   params: {
     id: string;
   };
-};
+  searchParams: { [key: string]: string | string[] | undefined };
+}
 
 export async function GET(
   request: NextRequest,
-  context: RouteParams
+  context: RouteContext
 ) {
   try {
     const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${context.params.id}`);
@@ -26,7 +27,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  context: RouteParams
+  context: RouteContext
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -37,7 +38,6 @@ export async function POST(
     const body = await request.json();
     const { startDate, endDate, totalPrice } = body;
 
-    // Validate the car exists
     const car = await prisma.car.findUnique({
       where: {
         id: parseInt(context.params.id)
@@ -80,10 +80,9 @@ export async function POST(
   }
 }
 
-// Optional: Add a method to check car availability for specific dates
 export async function HEAD(
   request: NextRequest,
-  context: RouteParams
+  context: RouteContext
 ) {
   try {
     const url = new URL(request.url);
