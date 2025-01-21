@@ -36,12 +36,13 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!response.ok) {
+          console.error('Failed to get/create user');
           return false;
         }
 
         const userData = await response.json();
-        user.id = userData.id;
-
+        user.id = userData.id.toString();
+        console.log('User ID from database:', userData.id);
         return true;
       } catch (error) {
         console.error('SignIn error:', error);
@@ -60,7 +61,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.sub as string;
+        session.user.id = token.sub;
       }
       return session;
     },

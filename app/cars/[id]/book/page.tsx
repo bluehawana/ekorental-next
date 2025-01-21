@@ -127,9 +127,9 @@ export default function BookingPage() {
       console.log('Session user ID:', session.user.id);
 
       const bookingRequest = {
-        bookingId: null,
-        carId: Number(car.id),
-        userId: 8,
+        id: null,
+        userId: parseInt(session.user.id),
+        carId: car.id,
         startTime: new Date(booking.pickupTime).toISOString(),
         endTime: new Date(booking.returnTime).toISOString(),
         status: "PENDING",
@@ -153,7 +153,7 @@ export default function BookingPage() {
         throw new Error(data.error || 'Booking failed');
       }
 
-      const bookingId = data.bookingId || data.id;
+      const bookingId = data.id;
       if (bookingId) {
         console.log('Redirecting to success with ID:', bookingId);
         toast.success('Booking confirmed!');
