@@ -41,3 +41,51 @@
 .navbar-link {
   @apply text-gray-300 hover:text-white transition-colors;
 }
+
+/* Add these styles to handle datetime input appearance */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-text {
+  color: white;
+  padding: 0 0.3em;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-month-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-day-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-year-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-second-field {
+  color: white;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
+  color: white;
+}
