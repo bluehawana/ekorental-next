@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   try {
     const { bookingId, amount } = await request.json();
 
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -16,26 +17,24 @@ export async function POST(request: Request) {
           price_data: {
             currency: 'sek',
             product_data: {
-              name: 'Car Rental Booking',
+              name: `Car Booking #${bookingId}`,
             },
-            unit_amount: amount * 100, // Convert to cents
+            unit_amount: Math.round(amount * 100), // Convert to öre/cents
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/cancel`,
-      metadata: {
-        bookingId,
-      },
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/bookings/success?id=${bookingId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/bookings/cancel?id=${bookingId}`,
     });
 
-    return NextResponse.json({ id: session.id });
+    // Return the session URL for redirect
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe session creation error:', error);
+    console.error('Stripe error:', error);
     return NextResponse.json(
-      { error: 'Error creating payment session' },
+      { error: 'Failed to create payment session' },
       { status: 500 }
     );
   }

@@ -15,6 +15,10 @@ export function Hero() {
           className="object-cover"
           priority
           quality={100}
+          onError={(e: any) => {
+            console.log('Hero image failed to load');
+            e.target.src = '/placeholder-car.png';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 to-gray-900/80" />
       </div>
