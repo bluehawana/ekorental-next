@@ -217,13 +217,13 @@ export default function BookingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Pick-up Time
+                  Start Time
                 </label>
                 <input
                   type="datetime-local"
                   value={booking.pickupTime}
                   onChange={handlePickupChange}
-                  className="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
+                  className="w-full px-4 py-2 bg-black border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
                   min={formatDateTime(new Date())}
                   suppressHydrationWarning
                 />
@@ -231,13 +231,13 @@ export default function BookingPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Return Time
+                  End Time
                 </label>
                 <input
                   type="datetime-local"
                   value={booking.returnTime}
                   onChange={handleReturnChange}
-                  className="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
+                  className="w-full px-4 py-2 bg-black border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white [color-scheme:dark]"
                   min={booking.pickupTime || formatDateTime(new Date())}
                   suppressHydrationWarning
                 />

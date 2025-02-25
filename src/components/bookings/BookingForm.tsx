@@ -89,7 +89,7 @@ export function BookingForm({ car }: BookingFormProps) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Pickup Time</label>
+            <label className="block text-sm font-medium text-gray-700">Start Time</label>
             <input
               type="datetime-local"
               value={startDate}
@@ -97,14 +97,14 @@ export function BookingForm({ car }: BookingFormProps) {
                 setStartDate(e.target.value);
                 handleDateChange();
               }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md bg-[#1a1a2e] text-black border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
               min={new Date().toISOString().slice(0, 16)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Return Time</label>
+            <label className="block text-sm font-medium text-gray-700">End Time</label>
             <input
               type="datetime-local"
               value={endDate}
@@ -112,7 +112,7 @@ export function BookingForm({ car }: BookingFormProps) {
                 setEndDate(e.target.value);
                 handleDateChange();
               }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md bg-[#1a1a2e] text-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
               min={startDate}
             />

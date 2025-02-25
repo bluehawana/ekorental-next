@@ -149,27 +149,37 @@ export default function BookingSuccessPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="border-t border-b border-gray-700 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-400">Pick-up Time</p>
-                <p className="text-lg font-medium text-white">{formatDate(booking.startDate)}</p>
+          <div className="border-t border-b border-gray-700 py-6">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="flex flex-col space-y-2 px-6">
+                <p className="text-sm font-medium text-gray-400">Pick-up Time</p>
+                <p className="text-lg font-semibold text-white">
+                  {new Date(booking.startDate).toLocaleString('sv-SE')}
+                </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Return Time</p>
-                <p className="text-lg font-medium text-white">{formatDate(booking.endDate)}</p>
+              <div className="flex flex-col space-y-2 px-6">
+                <p className="text-sm font-medium text-gray-400">Return Time</p>
+                <p className="text-lg font-semibold text-white">
+                  {new Date(booking.endDate).toLocaleString('sv-SE')}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <p className="text-sm text-gray-400">Total Price</p>
-            <p className="text-2xl font-bold text-white">{booking.totalPrice} SEK</p>
-          </div>
+          <div className="space-y-4">
+            <div className="bg-gray-700 p-6 rounded-lg">
+              <div className="flex flex-col space-y-2 px-4">
+                <p className="text-sm font-medium text-gray-400">Total Price</p>
+                <p className="text-2xl font-bold text-white">{booking.totalPrice} SEK</p>
+              </div>
+            </div>
 
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <p className="text-sm text-gray-400">Status</p>
-            <p className="text-lg font-medium text-blue-400">{booking.status}</p>
+            <div className="bg-gray-700 p-6 rounded-lg">
+              <div className="flex flex-col space-y-2 px-4">
+                <p className="text-sm font-medium text-gray-400">Status</p>
+                <p className="text-lg font-semibold text-blue-400">{booking.status}</p>
+              </div>
+            </div>
           </div>
 
           {booking.status === 'PENDING' && (
@@ -178,7 +188,7 @@ export default function BookingSuccessPage() {
             </div>
           )}
 
-          <div className="flex flex-col gap-4 mt-8 items-center">
+          <div className="flex flex-col gap-4 mt-8 items-center pb-6">
             {booking.status === 'PENDING' && (
               <Link
                 href="/dashboard"
@@ -188,10 +198,10 @@ export default function BookingSuccessPage() {
               </Link>
             )}
             <Link
-              href="/bookings"
-              className="inline-flex justify-center items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors w-96"
+              href={`/bookings?id=${booking.id}`}
+              className="inline-flex justify-center items-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors w-96 mb-4"
             >
-              View All Bookings
+              View My Bookings
             </Link>
           </div>
         </div>

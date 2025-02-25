@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
+import { API_CONFIG } from '@/lib/api-config';
 
 interface Car {
   id: number;
@@ -73,12 +74,18 @@ export default function DashboardPage() {
           <div key={car.id} className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="relative w-full" style={{ paddingTop: '70%' }}>
               <Image
-                src={car.imageUrl}
+                src={car.imageUrl 
+                  ? car.imageUrl.includes('http') 
+                    ? car.imageUrl 
+                    : `${API_CONFIG.BACKEND_URL}/uploads/${car.imageUrl}`
+                  : '/images/placeholder-car.png'
+                }
                 alt={`${car.make} ${car.model}`}
                 fill
                 className="object-cover"
                 onError={(e: any) => {
-                  e.target.src = '/placeholder-car.png';
+                  console.log('Image failed to load:', car.imageUrl);
+                  e.target.src = '/images/placeholder-car.png';
                 }}
                 unoptimized
               />
