@@ -28,6 +28,7 @@ export default function BookingSuccessPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let pollInterval: NodeJS.Timeout;
 
     const fetchBooking = async () => {
       if (!bookingId) {
@@ -87,10 +88,36 @@ export default function BookingSuccessPage() {
 
     fetchBooking();
 
+    const pollBookingStatus = async () => {
+      if (!bookingId) return;
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${bookingId}`);
+        if (!response.ok) return;
+        
+        const bookingData = await response.json();
+        
+        if (bookingData.status === 'CONFIRMED') {
+          setBooking(bookingData);
+          clearInterval(pollInterval);
+          toast.success('Payment confirmed!');
+        }
+      } catch (error) {
+        console.error('Error polling booking status:', error);
+      }
+    };
+
+    if (booking?.status === 'PENDING') {
+      pollInterval = setInterval(pollBookingStatus, 5000); // Poll every 5 seconds
+    }
+
     return () => {
       isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
-  }, [bookingId]);
+  }, [bookingId, booking?.status]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -170,12 +197,12 @@ export default function BookingSuccessPage() {
       >
         <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg">
           <div className="p-8">
-            <div className="text-center mb-8 mt-4">
-              <h1 className="text-5xl md:text-6xl font-bold text-white mb-8">Booking Details</h1>
+            <div className="text-center py-4">
+              <h2 className="text-5xl md:text-6xl font-bold text-white mb-2">Booking Details</h2>
               <p className="text-base text-gray-400">Booking ID: {booking.id}</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 mt-8">
               <div className="border-t border-b border-gray-700 py-6">
                 <div className="grid grid-cols-2 gap-8 px-8">
                   <div className="flex flex-col space-y-2">
@@ -218,7 +245,7 @@ export default function BookingSuccessPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 mt-8">
+              <div className="flex flex-col gap-4 mt-8 px-8">
                 {booking.status === 'PENDING' && (
                   <div className="flex justify-center">
                     <Payment bookingId={booking.id.toString()} amount={booking.totalPrice} />
@@ -234,9 +261,9 @@ export default function BookingSuccessPage() {
                 
                 <Link
                   href={`/bookings?id=${booking.id}`}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-4 px-6 rounded-lg font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg text-center"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg text-center"
                 >
-                  View and Editing My Bookings
+                  View My Bookings
                 </Link>
               </div>
             </div>

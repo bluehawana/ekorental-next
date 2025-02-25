@@ -1,9 +1,10 @@
 'use client';
 
-import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { toast } from 'react-hot-toast';
 
-// Initialize Stripe with your publishable key
+// Make sure to use the correct publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PaymentProps {
@@ -17,8 +18,10 @@ export function Payment({ bookingId, amount }: PaymentProps) {
   const handlePayment = async () => {
     try {
       setIsLoading(true);
-      
-      // Create a checkout session
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error('Stripe failed to initialize');
+
+      console.log('Creating checkout session for:', { bookingId, amount });
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -30,28 +33,24 @@ export function Payment({ bookingId, amount }: PaymentProps) {
         }),
       });
 
+      const data = await response.json();
+      console.log('Checkout session response:', data);
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const session = await response.json();
-
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe failed to initialize');
+        throw new Error(data.error || 'Failed to create checkout session');
       }
 
       const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
+        sessionId: data.id
       });
 
       if (result.error) {
         throw new Error(result.error.message);
       }
+
     } catch (error) {
-      console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
+      console.error('Detailed payment error:', error);
+      toast.error(error instanceof Error ? error.message : 'Payment failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +60,7 @@ export function Payment({ bookingId, amount }: PaymentProps) {
     <button
       onClick={handlePayment}
       disabled={isLoading}
-      className="w-96 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg disabled:opacity-50"
     >
       {isLoading ? 'Processing...' : 'Proceed to Payment'}
     </button>
