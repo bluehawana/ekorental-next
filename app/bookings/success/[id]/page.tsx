@@ -1,105 +1,52 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
-import { MapPin, Calendar, Clock, CheckCircle, Car } from 'lucide-react';
-
-const BACKEND_URL = 'http://localhost:8080';
-
-interface Car {
-  id: number;
-  make: string;
-  model: string;
-  location: string;
-  imageUrl?: string;
-  pricePerHour: number;
-}
+import Image from 'next/image';
+import { MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
 
 interface BookingDetails {
   id: number;
-  carId: number;
   startTime: string;
   endTime: string;
   totalPrice: number;
   status: string;
-  car?: Car;
+  car: {
+    id: number;
+    make: string;
+    model: string;
+    year: string;
+    imageUrl: string;
+    location: string;
+  };
 }
 
 export default function BookingSuccessPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const params = useParams();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const bookingId = searchParams.get('id');
-    
-    if (!bookingId) {
-      toast.error('No booking ID provided');
-      router.push('/dashboard');
-      return;
-    }
-
-    const fetchBookingAndCarDetails = async () => {
+    const fetchBookingDetails = async () => {
       try {
-        // Fetch booking details
-        const bookingResponse = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}`);
-        if (!bookingResponse.ok) throw new Error('Failed to fetch booking details');
-        const bookingData = await bookingResponse.json();
-
-        // If booking is not in PENDING status, redirect to dashboard
-        if (bookingData.status !== 'PENDING') {
-          router.push('/dashboard');
-          return;
-        }
-
-        // Fetch car details
-        const carResponse = await fetch(`${BACKEND_URL}/api/cars/${bookingData.carId}`);
-        if (!carResponse.ok) throw new Error('Failed to fetch car details');
-        const carData = await carResponse.json();
-
-        // Combine booking and car data
-        const completeBooking = {
-          ...bookingData,
-          car: carData
-        };
-        
-        // Set the combined data
-        setBooking(completeBooking);
-
-        // Update booking status to CONFIRMED
-        try {
-          const updateResponse = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}/status`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: 'CONFIRMED' }),
-          });
-          
-          if (updateResponse.ok) {
-            setBooking(prev => prev ? { ...prev, status: 'CONFIRMED' } : null);
-            toast.success('Booking confirmed successfully!');
-          } else {
-            console.warn('Failed to update booking status');
-            toast.error('Failed to update booking status');
-          }
-        } catch (updateError) {
-          console.error('Error updating booking status:', updateError);
-          toast.error('Failed to update booking status');
-        }
+        const response = await fetch(`http://localhost:8080/api/bookings/${params.id}`);
+        if (!response.ok) throw new Error('Failed to fetch booking details');
+        const data = await response.json();
+        setBooking(data);
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error fetching booking:', error);
         toast.error('Failed to load booking details');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBookingAndCarDetails();
-  }, [searchParams, router]);
+    if (params.id) {
+      fetchBookingDetails();
+    }
+  }, [params.id]);
 
   if (loading) {
     return (
@@ -109,7 +56,7 @@ export default function BookingSuccessPage() {
     );
   }
 
-  if (!booking || !booking.car) {
+  if (!booking) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white text-center">
@@ -146,20 +93,17 @@ export default function BookingSuccessPage() {
             <div className="bg-gray-700 rounded-lg p-6 mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">Car Details</h2>
               <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex items-center justify-center w-full md:w-1/2 h-48 rounded-lg bg-gray-800">
-                  {booking.car.imageUrl ? (
-                    <img
-                      src={`${BACKEND_URL}${booking.car.imageUrl}`}
-                      alt={`${booking.car.make} ${booking.car.model}`}
-                      className="object-cover w-full h-full rounded-lg"
-                    />
-                  ) : (
-                    <Car className="w-24 h-24 text-blue-500" />
-                  )}
+                <div className="relative w-full md:w-1/2 h-48 rounded-lg overflow-hidden">
+                  <Image
+                    src={booking.car.imageUrl || '/placeholder-car.jpg'}
+                    alt={`${booking.car.make} ${booking.car.model}`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
                 </div>
                 <div className="md:w-1/2">
                   <h3 className="text-xl font-bold text-white">
-                    {booking.car.make} {booking.car.model}
+                    {booking.car.make} {booking.car.model} {booking.car.year}
                   </h3>
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center text-gray-300">

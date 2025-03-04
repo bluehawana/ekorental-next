@@ -1,11 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { toast } from 'react-hot-toast';
-
-// Make sure to use the correct publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface PaymentProps {
   bookingId: string;
@@ -18,39 +14,36 @@ export function Payment({ bookingId, amount }: PaymentProps) {
   const handlePayment = async () => {
     try {
       setIsLoading(true);
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe failed to initialize');
-
       console.log('Creating checkout session for:', { bookingId, amount });
-      const response = await fetch('/api/create-checkout-session', {
+      
+      const response = await fetch('http://localhost:8080/api/payments/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          bookingId,
-          amount,
+          bookingId: bookingId,
+          amount: Math.round(amount * 100) // Convert to cents for Stripe
         }),
+        credentials: 'include' // Include cookies if you're using session-based auth
       });
 
       const data = await response.json();
-      console.log('Checkout session response:', data);
+      console.log('Server response:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
+        throw new Error(data.message || 'Payment session creation failed');
       }
 
-      const result = await stripe.redirectToCheckout({
-        sessionId: data.id
-      });
-
-      if (result.error) {
-        throw new Error(result.error.message);
+      if (data.url) {
+        console.log('Redirecting to:', data.url);
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received from the server');
       }
-
     } catch (error) {
-      console.error('Detailed payment error:', error);
-      toast.error(error instanceof Error ? error.message : 'Payment failed. Please try again.');
+      console.error('Payment error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate payment. Please try again.');
     } finally {
       setIsLoading(false);
     }

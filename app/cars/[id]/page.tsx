@@ -1,51 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { API_CONFIG } from '@/lib/api-config';
 import Image from 'next/image';
 import Link from 'next/link';
-
-interface Car {
-  id: number;
-  model: string;
-  licensePlate: string;
-  hourRate: number;
-  imageUrl: string;
-  isAvailable: boolean;
-  location: string;
-  year: number;
-  description: string;
-}
+import { useCars } from '@/contexts/CarContext';
 
 export default function CarDetailsPage({ params }: { params: { id: string } }) {
-  const [car, setCar] = useState<Car | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCar = async () => {
-      try {
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars/${params.id}`);
-        if (!response.ok) throw new Error('Failed to fetch car');
-        const data = await response.json();
-        setCar(data);
-      } catch (error) {
-        console.error('Error fetching car:', error);
-        setError('Failed to load car details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCar();
-  }, [params.id]);
+  const { getCarById, loading } = useCars();
+  const car = getCarById(parseInt(params.id));
 
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
 
-  if (error || !car) {
-    return <div className="p-4 text-red-500">{error || 'Car not found'}</div>;
+  if (!car) {
+    return <div className="p-4 text-red-500">Car not found</div>;
   }
 
   return (

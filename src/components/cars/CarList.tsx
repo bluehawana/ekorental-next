@@ -1,43 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { CarCard } from './CarCard';
-import { API_CONFIG } from '@/lib/api-config';
-
-interface Car {
-  id: string;
-  model: string;
-  price: number;
-  imageUrl: string;
-  description: string;
-  plateNumber: string;
-  location: string;
-  year: string;
-  costPerHour: number;
-}
+import { useCars } from '@/contexts/CarContext';
 
 export function CarList() {
-  const [cars, setCars] = useState<Car[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}/cars`);
-        if (!response.ok) throw new Error('Failed to fetch cars');
-        const data = await response.json();
-        setCars(data);
-      } catch (error) {
-        console.error('Error fetching cars:', error);
-        setError('Failed to load cars. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCars();
-  }, []);
+  const { cars, loading, error } = useCars();
 
   if (loading) {
     return (

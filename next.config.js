@@ -9,9 +9,6 @@ const nextConfig = {
       'picsum.photos'
     ],
   },
-  experimental: {
-    appDir: true
-  }
 };
 
 module.exports = nextConfig;

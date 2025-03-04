@@ -1,396 +1,342 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Payment } from '@/components/Payment';
+import Image from 'next/image';
 
-interface Booking {
+const BACKEND_URL = 'http://localhost:8080';
+
+interface BookingDetails {
   id: number;
   userId: number;
   carId: number;
   startTime: string;
   endTime: string;
-  status: string;
   totalPrice: number;
+  status: string;
+  carModel?: string;
+  carImage?: string;
   createdAt: string;
   updatedAt: string;
-  car: {
-    make: string;
-    model: string;
-    hourRate: number;
-  };
 }
 
-const formatDateForInput = (dateString: string) => {
-  try {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    return date.toISOString().slice(0, 16);
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return '';
-  }
-};
+interface BookingUpdateDTO {
+  userId: number;
+  carId: number;
+  startTime: string;
+  endTime: string;
+  totalPrice: number;
+  status: string;
+}
 
 export default function BookingsPage() {
-  const { data: session } = useSession();
   const searchParams = useSearchParams();
-  const highlightId = searchParams.get('id');
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const router = useRouter();
+  const [bookings, setBookings] = useState<BookingDetails[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedBooking, setEditedBooking] = useState<BookingDetails | null>(null);
 
   useEffect(() => {
-    fetchBookings();
-  }, [session]);
-
-  useEffect(() => {
-    if (highlightId) {
-      const element = document.getElementById(`booking-${highlightId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-        element.classList.add('ring-2', 'ring-blue-500');
-      }
+    const bookingId = searchParams.get('id');
+    
+    if (bookingId) {
+      fetchBookingDetails(bookingId);
+    } else {
+      fetchAllBookings();
     }
-  }, [highlightId, bookings]);
+  }, [searchParams]);
 
-  const fetchBookings = async () => {
+  const fetchAllBookings = async () => {
     try {
-      const response = await fetch('/api/bookings');
+      const response = await fetch(`${BACKEND_URL}/api/bookings`);
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const data = await response.json();
       setBookings(data);
     } catch (error) {
+      console.error('Error:', error);
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCarDetails = async (carId: number) => {
+  const fetchBookingDetails = async (id: string) => {
     try {
-      const response = await fetch(`/api/cars/${carId}`);
-      if (!response.ok) throw new Error('Failed to fetch car details');
-      return await response.json();
+      const response = await fetch(`${BACKEND_URL}/api/bookings/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch booking details');
+      const data = await response.json();
+      setSelectedBooking(data);
     } catch (error) {
-      console.error('Error fetching car:', error);
-      return null;
+      console.error('Error:', error);
+      toast.error('Failed to load booking details');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = async (booking: Booking) => {
+  const handleCancelBooking = async (bookingId: number) => {
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
+    
     try {
-      if (!booking.car?.hourRate) {
-        const carDetails = await fetchCarDetails(booking.carId);
-        if (carDetails) {
-          booking.car = {
-            ...booking.car,
-            hourRate: carDetails.hourRate
-          };
+      const response = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
         }
-      }
-      setEditingBooking(booking);
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel booking');
+      
+      toast.success('Booking cancelled successfully');
+      router.push('/bookings');
     } catch (error) {
-      console.error('Error setting up edit:', error);
-      toast.error('Failed to load car details');
+      console.error('Error:', error);
+      toast.error('Failed to cancel booking');
     }
   };
 
-  const calculatePrice = (startDate: string, endDate: string, hourRate: number) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+  const handleUpdateBooking = async (bookingId: number) => {
+    if (!editedBooking || !selectedBooking) return;
     
-    // Calculate difference in milliseconds
-    const diffMs = end.getTime() - start.getTime();
-    
-    // Convert to hours with decimal points (e.g., 1.5 hours)
-    const diffHours = diffMs / (1000 * 60 * 60);
-    
-    // Round up to nearest 0.5 hour
-    const roundedHours = Math.ceil(diffHours * 2) / 2;
-    
-    // Calculate total price
-    const totalPrice = Math.round(roundedHours * hourRate);
-
-    console.log('Price calculation:', {
-      start: start.toISOString(),
-      end: end.toISOString(),
-      diffMs,
-      diffHours,
-      roundedHours,
-      hourRate,
-      totalPrice
-    });
-
-    return totalPrice;
-  };
-
-  const handleUpdate = async (bookingId: number, updates: Partial<Booking>) => {
     try {
-      const currentBooking = bookings.find(b => b.id === bookingId);
-      if (!currentBooking) throw new Error('Booking not found');
-
-      // First fetch the car details to ensure we have the hourRate
-      const carResponse = await fetch(`/api/cars/${currentBooking.carId}`);
-      if (!carResponse.ok) throw new Error('Failed to fetch car details');
-      const carData = await carResponse.json();
-
-      if (!carData.hourRate) {
-        console.error('Car data:', carData);
-        throw new Error('Car hourly rate not found');
-      }
-
-      // Calculate the new total price
-      const startTime = new Date(updates.startTime as string);
-      const endTime = new Date(updates.endTime as string);
-      
-      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-        throw new Error('Invalid dates');
-      }
-
-      const totalPrice = calculatePrice(
-        startTime.toISOString(),
-        endTime.toISOString(),
-        carData.hourRate
-      );
-
-      const formattedUpdates = {
-        startTime: startTime.toISOString().split('.')[0],
-        endTime: endTime.toISOString().split('.')[0],
-        totalPrice,
-        status: "PENDING",
-        carId: currentBooking.carId,
-        userId: currentBooking.userId
+      const updateDTO: BookingUpdateDTO = {
+        userId: selectedBooking.userId,
+        carId: selectedBooking.carId,
+        startTime: editedBooking.startTime,
+        endTime: editedBooking.endTime,
+        totalPrice: selectedBooking.totalPrice,
+        status: selectedBooking.status
       };
 
-      console.log('Sending update request:', formattedUpdates);
-
-      const response = await fetch(`/api/bookings/${bookingId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formattedUpdates),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateDTO),
       });
 
-      const updatedBooking = await response.json();
-      console.log('Received updated booking:', updatedBooking);
-
-      // Add field name checking
-      if (updatedBooking.start_time && updatedBooking.end_time) {
-        // Handle snake_case response
-        updatedBooking.startTime = updatedBooking.start_time;
-        updatedBooking.endTime = updatedBooking.end_time;
-      }
-
-      if (!updatedBooking.startTime || !updatedBooking.endTime) {
-        console.error('Invalid booking data received:', updatedBooking);
-        throw new Error('Invalid response from server');
-      }
-
+      if (!response.ok) throw new Error('Failed to update booking');
+      
+      setIsEditing(false);
       toast.success('Booking updated successfully');
-      await fetchBookings();
-      setEditingBooking(null);
+      fetchBookingDetails(bookingId.toString());
     } catch (error) {
-      console.error('Update error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update booking');
+      console.error('Error:', error);
+      toast.error('Failed to update booking');
     }
   };
 
-  const handleDelete = async (bookingId: number) => {
-    if (!confirm('Are you sure you want to delete this booking?')) return;
-
-    try {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete booking');
-      
-      toast.success('Booking deleted successfully');
-      fetchBookings();
-    } catch (error) {
-      toast.error('Failed to delete booking');
-    }
+  const getImageUrl = (imagePath?: string) => {
+    if (!imagePath) return '/placeholder-car.jpg';
+    if (imagePath.startsWith('http')) return imagePath;
+    return `${BACKEND_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
+  // Show individual booking details if ID is provided
+  if (selectedBooking) {
+    return (
+      <div className="min-h-screen bg-gray-900 py-12 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <Link
+              href="/bookings"
+              className="text-blue-500 hover:text-blue-400 flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Bookings
+            </Link>
+            <h1 className="text-3xl font-bold text-white">Booking Details</h1>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg shadow-xl p-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Car Details Section */}
+              <div className="bg-gray-700 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-white mb-4">Car Details</h2>
+                {selectedBooking.carImage && (
+                  <div className="mb-4">
+                    <Image
+                      src={getImageUrl(selectedBooking.carImage)}
+                      alt={selectedBooking.carModel || 'Car'}
+                      width={400}
+                      height={300}
+                      className="rounded-lg"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2 text-gray-300">
+                  <p>Model: {selectedBooking.carModel}</p>
+                </div>
+              </div>
+
+              {/* Booking Information Section */}
+              <div className="bg-gray-700 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-white mb-4">Booking Information</h2>
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-gray-300 mb-2">Start Time</label>
+                      <input
+                        type="datetime-local"
+                        value={editedBooking?.startTime.slice(0, 16)}
+                        onChange={(e) => setEditedBooking({
+                          ...editedBooking!,
+                          startTime: e.target.value,
+                        })}
+                        className="w-full bg-gray-600 text-white rounded px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 mb-2">End Time</label>
+                      <input
+                        type="datetime-local"
+                        value={editedBooking?.endTime.slice(0, 16)}
+                        onChange={(e) => setEditedBooking({
+                          ...editedBooking!,
+                          endTime: e.target.value,
+                        })}
+                        className="w-full bg-gray-600 text-white rounded px-3 py-2"
+                      />
+                    </div>
+                    <div className="flex space-x-4">
+                      <button
+                        onClick={() => handleUpdateBooking(selectedBooking.id)}
+                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedBooking(null);
+                        }}
+                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 text-gray-300">
+                    <p>Booking ID: {selectedBooking.id}</p>
+                    <p>Start Time: {new Date(selectedBooking.startTime).toLocaleString()}</p>
+                    <p>End Time: {new Date(selectedBooking.endTime).toLocaleString()}</p>
+                    <p>Total Price: {selectedBooking.totalPrice} SEK</p>
+                    <p>Status: {selectedBooking.status}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-8 flex justify-center space-x-4">
+              {selectedBooking.status === 'PENDING' && (
+                <>
+                  <Payment 
+                    bookingId={selectedBooking.id.toString()} 
+                    amount={selectedBooking.totalPrice}
+                  />
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setEditedBooking(selectedBooking);
+                    }}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    disabled={isEditing}
+                  >
+                    Edit Booking
+                  </button>
+                  <button
+                    onClick={() => handleCancelBooking(selectedBooking.id)}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Cancel Booking
+                  </button>
+                </>
+              )}
+
+              {selectedBooking.status === 'CONFIRMED' && (
+                <div className="text-center">
+                  <p className="text-green-500 font-semibold mb-4">
+                    Payment Completed! Your booking is confirmed.
+                  </p>
+                  <Link
+                    href="/dashboard"
+                    className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Go to Dashboard
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show list of all bookings if no ID is provided
   return (
     <div className="min-h-screen bg-gray-900 py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">My Bookings</h1>
         
-        <div className="space-y-6">
-          {bookings.map((booking) => (
-            <div
-              key={booking.id}
-              id={`booking-${booking.id}`}
-              className="bg-gray-800 rounded-lg p-6 shadow-lg"
-            >
-              <div className="flex justify-between items-start">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-400">Booking ID</p>
-                    <p className="text-lg font-semibold text-white">#{booking.id}</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-8">
-                    <div>
-                      <p className="text-sm text-gray-400">Start Time</p>
-                      <p className="text-lg text-white">
-                        {new Date(booking.startTime).toLocaleString('sv-SE', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">End Time</p>
-                      <p className="text-lg text-white">
-                        {new Date(booking.endTime).toLocaleString('sv-SE', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div>
-                      <p className="text-sm text-gray-400">Status</p>
-                      <p className="text-lg text-blue-400">{booking.status}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Total Price</p>
-                      <p className="text-lg font-bold text-white">{booking.totalPrice} SEK</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(booking)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(booking.id)}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {editingBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-white mb-4">Edit Booking</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const startTime = formData.get('startTime') as string;
-                const endTime = formData.get('endTime') as string;
-
-                if (new Date(startTime) >= new Date(endTime)) {
-                  toast.error('End time must be after start time');
-                  return;
-                }
-
-                await handleUpdate(editingBooking.id, {
-                  startTime,
-                  endTime
-                });
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm text-gray-400">Start Time</label>
-                <input
-                  type="datetime-local"
-                  name="startTime"
-                  defaultValue={formatDateForInput(editingBooking.startTime)}
-                  className="w-full bg-gray-700 text-white rounded p-2"
-                  required
-                  min={new Date().toISOString().slice(0, 16)}
-                  onChange={async (e) => {
-                    const startDate = e.target.value;
-                    const endDateInput = e.currentTarget.form?.elements.namedItem('endTime') as HTMLInputElement;
-                    if (endDateInput?.value && editingBooking?.car?.hourRate) {
-                      const price = calculatePrice(
-                        startDate,
-                        endDateInput.value,
-                        editingBooking.car.hourRate
-                      );
-                      const priceElement = document.getElementById('newPrice');
-                      if (priceElement) {
-                        priceElement.textContent = `${price} SEK`;
-                      }
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400">End Time</label>
-                <input
-                  type="datetime-local"
-                  name="endTime"
-                  defaultValue={formatDateForInput(editingBooking.endTime)}
-                  className="w-full bg-gray-700 text-white rounded p-2"
-                  required
-                  min={formatDateForInput(editingBooking.startTime)}
-                  onChange={async (e) => {
-                    const startDateInput = e.currentTarget.form?.elements.namedItem('startTime') as HTMLInputElement;
-                    if (startDateInput?.value && editingBooking?.car?.hourRate) {
-                      const newPrice = calculatePrice(
-                        startDateInput.value,
-                        e.target.value,
-                        editingBooking.car.hourRate
-                      );
-                      const priceElement = document.getElementById('newPrice');
-                      if (priceElement) priceElement.textContent = `${newPrice} SEK`;
-                    }
-                  }}
-                />
-              </div>
-              <div className="mt-4 p-4 bg-gray-700 rounded">
-                <p className="text-sm text-gray-400">New Total Price</p>
-                <p id="newPrice" className="text-xl font-bold text-white">{editingBooking.totalPrice} SEK</p>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setEditingBooking(null)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
+        {bookings.length === 0 ? (
+          <div className="text-center text-gray-400">
+            <p>No bookings found.</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {bookings.map((booking) => (
+              <div key={booking.id} className="bg-gray-800 rounded-lg shadow-xl p-6">
+                {booking.carImage && (
+                  <div className="mb-4 relative h-48">
+                    <Image
+                      src={getImageUrl(booking.carImage)}
+                      alt={booking.carModel || 'Car'}
+                      fill
+                      className="rounded-lg object-cover"
+                    />
+                  </div>
+                )}
+                <h3 className="text-xl font-semibold text-white mb-2">{booking.carModel}</h3>
+                <div className="space-y-2 text-gray-400 mb-4">
+                  <p>Start: {new Date(booking.startTime).toLocaleString()}</p>
+                  <p>End: {new Date(booking.endTime).toLocaleString()}</p>
+                  <p>Price: {booking.totalPrice} SEK</p>
+                  <p className={`font-semibold ${
+                    booking.status === 'CONFIRMED' ? 'text-green-500' : 'text-yellow-500'
+                  }`}>
+                    Status: {booking.status}
+                  </p>
+                </div>
+                <Link
+                  href={`/bookings?id=${booking.id}`}
+                  className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  View Details
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

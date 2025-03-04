@@ -1,50 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+import { useCars } from '@/contexts/CarContext';
 import { API_CONFIG } from '@/lib/api-config';
-
-interface Car {
-  id: number;
-  make: string;
-  model: string;
-  year: number;
-  hourRate: number;
-  licensePlate: string;
-  location: string;
-  imageUrl: string;
-  description: string;
-}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const [cars, setCars] = useState<Car[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cars, loading } = useCars();
 
-  useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch('/api/cars');
-        if (!response.ok) throw new Error('Failed to fetch cars');
-        const data = await response.json();
-        console.log('Fetched cars:', data);
-        setCars(data);
-      } catch (error) {
-        console.error('Error fetching cars:', error);
-        toast.error('Failed to load cars');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCars();
-  }, []);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 text-white">Available Cars</h1>
