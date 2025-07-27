@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { ShoppingCart, User, Car } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@melody-auth/react';
 
 export function Navigation() {
-  const { data: session } = useSession();
+  const { isAuthenticated, userInfo, logoutRedirect } = useAuth();
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
@@ -25,9 +25,17 @@ export function Navigation() {
                 0
               </span>
             </Link>
-            {session ? (
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                {session.user?.email?.[0].toUpperCase()}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                  {userInfo?.email?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <button 
+                  onClick={() => logoutRedirect({ postLogoutRedirectUri: 'http://localhost:3000/' })}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Logout
+                </button>
               </div>
             ) : (
               <Link href="/signin">

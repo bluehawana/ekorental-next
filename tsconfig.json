@@ -33,7 +33,8 @@
       "@types/react-dom"
     ],
     "forceConsistentCasingInFileNames": true,
-    "target": "ES2017"
+    "target": "ES2017",
+    "baseUrl": "."
   },
   "include": [
     "next-env.d.ts",

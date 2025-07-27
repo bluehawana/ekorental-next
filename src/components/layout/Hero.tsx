@@ -27,13 +27,13 @@ export function Hero() {
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
-            Sweden&apos;s first eco-conscious Tesla rental service. Experience luxury while protecting our environment.
+            Sweden&apos;s first eco-conscious Tesla rental service.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
-              href="/signin"
-              className="w-full sm:w-auto bg-white text-gray-900 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all duration-300 shadow-lg text-lg"
+              href="/signin" 
+              className="w-full sm:w-auto bg-white text-gray-900 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all duration-300 text-lg"
             >
               Get Started
             </Link>

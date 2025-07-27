@@ -44,3 +44,12 @@ node_modules/
 .env.local
 *.exe
 .fake
+
+# Environment variables
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Allow .env for database URL only
+!.env

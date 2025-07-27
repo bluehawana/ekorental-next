@@ -2,5 +2,9 @@
 import { Hero } from '@/components/layout/Hero';
 
 export default function Home() {
-  return <Hero />;
+  return (
+    <div className="w-full">
+      <Hero />
+    </div>
+  );
 } 

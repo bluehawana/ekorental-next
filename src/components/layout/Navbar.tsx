@@ -18,8 +18,8 @@ export function Navbar() {
               Browse Cars
             </Link>
             {session ? (
-              <Link href="/profile" className="navbar-link">
-                Profile
+              <Link href="/dashboard" className="navbar-link">
+                Dashboard
               </Link>
             ) : (
               <Link href="/signin" className="navbar-link">

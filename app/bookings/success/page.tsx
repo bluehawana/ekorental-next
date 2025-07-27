@@ -1,23 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/Card';
+import { useSearchParams } from 'next/navigation';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import { CheckCircle, CreditCard } from 'lucide-react';
 
 interface Booking {
-  id: number;
-  carId: number;
+  id: string;
+  carId: string;
   startTime: string;
   endTime: string;
-  totalPrice: string;
+  totalPrice: number;
   status: string;
 }
 
 export default function SuccessPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,16 +34,13 @@ export default function SuccessPage() {
       }
       
       try {
-        console.log('Attempting to fetch booking:', bookingId);
         const response = await fetch(`/api/bookings/${bookingId}`);
-        console.log('Response status:', response.status);
         
         if (!isMounted) return;
 
         if (response.status === 404) {
-          console.log('Booking not found');
           setError('Booking not found');
-          toast.error('Booking not found', { id: 'booking-error' });
+          toast.error('Booking not found');
           return;
         }
 
@@ -51,14 +49,12 @@ export default function SuccessPage() {
         }
         
         const data = await response.json();
-        console.log('Received booking data:', data);
         setBooking(data);
-        toast.success('Booking confirmed!', { id: 'booking-success' });
+        toast.success('Booking confirmed!');
       } catch (error) {
         if (!isMounted) return;
-        console.error('Error fetching booking:', error);
         setError('Failed to load booking details');
-        toast.error('Failed to load booking details', { id: 'booking-error' });
+        toast.error('Failed to load booking details');
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -73,18 +69,43 @@ export default function SuccessPage() {
     };
   }, [bookingId]);
 
+  const handlePayment = async () => {
+    if (!booking) return;
+    
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}/payment`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create payment session');
+      }
+      
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      toast.error('Failed to process payment');
+    }
+  };
+
   if (!bookingId) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 bg-gray-800 text-white text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Invalid Booking</h1>
-          <p className="text-gray-300 mb-6">No booking ID was provided.</p>
-          <Link 
-            href="/dashboard"
-            className="block w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            Return to Dashboard
-          </Link>
+      <div className="min-h-screen bg-[#0A0A1B] flex items-center justify-center p-4">
+        <Card className="w-[380px] bg-[#1C1C3A] border-0 text-white shadow-2xl">
+          <CardHeader className="flex flex-col items-center space-y-6 px-6 py-12">
+            <CardTitle className="text-2xl font-bold">Invalid Booking</CardTitle>
+            <p className="text-gray-400">No booking ID was provided.</p>
+          </CardHeader>
+          <CardContent className="px-6 pb-8">
+            <Link href="/dashboard">
+              <Button 
+                className="w-full bg-white hover:bg-gray-100 text-gray-900 h-12 text-base"
+                variant="secondary"
+              >
+                Return to Dashboard
+              </Button>
+            </Link>
+          </CardContent>
         </Card>
       </div>
     );
@@ -92,12 +113,14 @@ export default function SuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 bg-gray-800">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-700 rounded w-3/4 mx-auto"></div>
-            <div className="h-4 bg-gray-700 rounded w-1/2 mx-auto"></div>
-          </div>
+      <div className="min-h-screen bg-[#0A0A1B] flex items-center justify-center p-4">
+        <Card className="w-[380px] bg-[#1C1C3A] border-0 text-white shadow-2xl">
+          <CardContent className="p-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-gray-700 rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-gray-700 rounded w-1/2 mx-auto"></div>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -105,68 +128,98 @@ export default function SuccessPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 bg-gray-800 text-white text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Error</h1>
-          <p className="text-gray-300 mb-6">{error}</p>
-          <div className="space-y-4">
-            <Link 
-              href="/dashboard"
-              className="block w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-            >
-              Return to Dashboard
+      <div className="min-h-screen bg-[#0A0A1B] flex items-center justify-center p-4">
+        <Card className="w-[380px] bg-[#1C1C3A] border-0 text-white shadow-2xl">
+          <CardHeader className="flex flex-col items-center space-y-6 px-6 py-12">
+            <CardTitle className="text-2xl font-bold text-red-500">Error</CardTitle>
+            <p className="text-gray-400">{error}</p>
+          </CardHeader>
+          <CardContent className="px-6 pb-8 space-y-4">
+            <Link href="/dashboard">
+              <Button 
+                className="w-full bg-white hover:bg-gray-100 text-gray-900 h-12 text-base"
+                variant="secondary"
+              >
+                Return to Dashboard
+              </Button>
             </Link>
-            <button
+            <Button 
               onClick={() => window.location.reload()}
-              className="block w-full bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+              className="w-full bg-[#2A2A4A] hover:bg-[#3A3A5A] text-white h-12 text-base"
+              variant="secondary"
             >
               Try Again
-            </button>
-          </div>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 bg-gray-800 text-white">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
+    <div className="min-h-screen bg-[#0A0A1B] flex items-center justify-center p-4">
+      <Card className="w-[475px] bg-[#1C1C3A] border-0 text-white shadow-2xl">
+        <CardHeader className="flex flex-col items-center space-y-6 px-8 pt-12">
+          <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-8 h-8 text-white" />
           </div>
-          
-          <h1 className="text-2xl font-bold text-green-500">Booking Confirmed!</h1>
-          
+          <CardTitle className="text-2xl font-bold text-green-500">Booking Confirmed!</CardTitle>
+        </CardHeader>
+        
+        <CardContent className="px-8 pb-8">
           {booking ? (
-            <div className="mt-6 space-y-2 text-gray-300">
-              <p>Booking ID: {booking.id}</p>
-              <p>Start Time: {new Date(booking.startTime).toLocaleString()}</p>
-              <p>End Time: {new Date(booking.endTime).toLocaleString()}</p>
-              <p>Total Price: {booking.totalPrice} SEK</p>
-              <p>Status: {booking.status}</p>
+            <div className="mb-8 space-y-4 bg-[#2A2A4A] rounded-lg p-6">
+              <p className="text-gray-300 text-lg">
+                <span className="font-semibold">Booking ID:</span> {booking.id}
+              </p>
+              <p className="text-gray-300 text-lg">
+                <span className="font-semibold">Start:</span> {new Date(booking.startTime).toLocaleString()}
+              </p>
+              <p className="text-gray-300 text-lg">
+                <span className="font-semibold">End:</span> {new Date(booking.endTime).toLocaleString()}
+              </p>
+              <p className="text-gray-300 text-lg">
+                <span className="font-semibold">Total:</span> {booking.totalPrice.toFixed(2)} SEK
+              </p>
+              <p className="text-gray-300 text-lg">
+                <span className="font-semibold">Status:</span>{' '}
+                <span className={booking.status === 'PENDING' ? 'text-yellow-500' : 'text-green-500'}>
+                  {booking.status}
+                </span>
+              </p>
             </div>
           ) : (
-            <p className="text-gray-300">Booking details not available.</p>
+            <p className="text-gray-400 mb-8 text-center text-lg">Booking details not available.</p>
           )}
 
-          <div className="mt-8 space-y-4">
-            <Link 
-              href="/dashboard"
-              className="block w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          <div className="space-y-4">
+            <Button 
+              onClick={handlePayment}
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg flex items-center justify-center gap-3"
             >
-              Return to Dashboard
+              <CreditCard className="w-6 h-6" />
+              Proceed to Payment
+            </Button>
+            
+            <Link href="/dashboard">
+              <Button 
+                className="w-full bg-white hover:bg-gray-100 text-gray-900 h-14 text-lg"
+                variant="secondary"
+              >
+                Return to Dashboard
+              </Button>
             </Link>
-            <Link 
-              href="/bookings"
-              className="block w-full bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-            >
-              View All Bookings
+            
+            <Link href="/bookings">
+              <Button 
+                className="w-full bg-[#2A2A4A] hover:bg-[#3A3A5A] text-white h-14 text-lg"
+                variant="secondary"
+              >
+                View My Bookings
+              </Button>
             </Link>
           </div>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );

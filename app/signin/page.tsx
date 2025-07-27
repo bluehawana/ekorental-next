@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Github } from 'lucide-react'
-import { signIn } from 'next-auth/react'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@melody-auth/react'
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
@@ -16,34 +16,47 @@ export default function SignIn() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
+  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
+  const { isAuthenticated, isAuthenticating, loginRedirect, loginError } = useAuth()
 
-  // Show error toast if there's an error in URL
-  if (error) {
-    toast.error(
-      error === 'AccessDenied' 
-        ? 'Access denied. Please try again.' 
-        : `Authentication error: ${error}`
-    )
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, router])
+
+  useEffect(() => {
+    if (loginError) {
+      toast.error(`Authentication error: ${loginError}`)
+    }
+  }, [loginError])
+
+  useEffect(() => {
+    if (error) {
+      switch (error) {
+        case 'OAuthAccountNotLinked':
+          toast.error('This email is already associated with another account')
+          break
+        case 'AccessDenied':
+          toast.error('Access denied. Please try again')
+          break
+        default:
+          toast.error(`Authentication error: ${error}`)
+      }
+    }
+  }, [error])
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
     try {
       setIsLoading(true)
-      const result = await signIn(provider, {
-        callbackUrl: '/dashboard',
-        redirect: true, // Changed to true for direct redirect
+      // For social login, we'll redirect to melody-auth server with the provider
+      loginRedirect({
+        state: JSON.stringify({ provider, callbackUrl }),
+        locale: 'en'
       })
-      
-      // This will only run if redirect is false
-      if (result?.error) {
-        toast.error(result.error)
-      } else if (result?.url) {
-        router.push(result.url)
-      }
     } catch (error) {
       console.error('Sign in error:', error)
       toast.error(`Failed to sign in with ${provider}`)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -52,20 +65,27 @@ export default function SignIn() {
     if (!email) return
     try {
       setIsLoading(true)
-      const result = await signIn('email', {
-        email,
-        callbackUrl: '/dashboard',
-        redirect: false,
+      // For email login, redirect to melody-auth server
+      loginRedirect({
+        state: JSON.stringify({ email, callbackUrl }),
+        locale: 'en'
       })
-      
-      if (result?.error) {
-        toast.error(result.error)
-      } else {
-        toast.success('Check your email for the login link!')
-      }
     } catch (error) {
-      toast.error('Failed to send login email')
-    } finally {
+      toast.error('Failed to initiate email login')
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true)
+      loginRedirect({
+        state: JSON.stringify({ provider: 'google', callbackUrl: '/dashboard' }),
+        locale: 'en'
+      })
+    } catch (error) {
+      console.error('Sign in error:', error)
+      toast.error('Failed to sign in with Google')
       setIsLoading(false)
     }
   }
